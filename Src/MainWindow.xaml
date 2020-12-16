@@ -29,4 +29,35 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="100" Width="480">
 
+    <Grid x:Name="uiMainGrid" Margin="5">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <Image x:Name="uiCoverImageLeft" Grid.Column="0" Visibility="Visible">
+            <Image.Source>
+                <BitmapImage UriSource="Assets/AlbumCoverPlaceholder.png" />
+            </Image.Source>
+        </Image>
+
+        <Grid x:Name="uiTextColumn" Grid.Column="1" Margin="5, 0, 0, 0">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <uc:MarqueeText x:Name="uiTextRow1" Grid.Row="0" FontSize="22" AlwaysAnim="True" AnimType="Bounce" StartDelay="1200" Text="Track Title" />
+            <uc:MarqueeText x:Name="uiTextRow2" Grid.Row="1" FontSize="22" AnimType="Bounce" StartDelay="1200" Text="Album Name" />
+
+        </Grid>
+
+        <Image x:Name="uiCoverImageRight" Grid.Column="2" Visibility="Collapsed">
+            <Image.Source>
+                <BitmapImage UriSource="Assets/AlbumCoverPlaceholder.png" />
+            </Image.Source>
+        </Image>
+    </Grid>
+    
 </Window>
