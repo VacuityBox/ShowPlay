@@ -1,0 +1,19 @@
+###############################
+# ShowPlay project .gitignore #
+###############################
+
+# Intermediate directory and files
+/Obj
+
+# Output directory and files
+/Bin
+
+# Visual Studio cache/options directory
+.vs/
+
+# Visual Studio User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
