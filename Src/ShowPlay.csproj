@@ -15,4 +15,12 @@
     <OutputPath>$(BaseOutputPath)\$(Platform)\$(Configuration)\</OutputPath>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Assets\AlbumCoverPlaceholder.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\AlbumCoverPlaceholder.png" />
+  </ItemGroup>
+
 </Project>
