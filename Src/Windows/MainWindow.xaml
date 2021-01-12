@@ -1,7 +1,7 @@
 ﻿<!--
   ShowPlay - Show what song is playing
   
-  Copyright (C) 2020 VacuityBox
+  Copyright (C) 2020-2021 VacuityBox
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
   
-  SPDX-License-Identifier: GPL-3.0-only     
+  SPDX-License-Identifier: GPL-3.0-only
 -->
 
 <Window x:Class="ShowPlay.MainWindow"
@@ -27,8 +27,19 @@
         xmlns:local="clr-namespace:ShowPlay"
         xmlns:uc="clr-namespace:ShowPlay.UserControls"
         mc:Ignorable="d"
-        Title="MainWindow" Height="100" Width="480">
+        Title="MainWindow" Height="100" Width="480"
+        Closing="Window_Closing">
 
+    <Window.ContextMenu>
+        <ContextMenu>
+            <ContextMenu.Items>
+                <MenuItem x:Name="uiShowLog" Click="uiShowLog_Click" Header="Show Log"/>
+                <Separator />
+                <MenuItem x:Name="uiMenuExit" Click="uiMenuExit_Click" Header="Exit"/>
+            </ContextMenu.Items>
+        </ContextMenu>
+    </Window.ContextMenu>
+    
     <Grid x:Name="uiMainGrid" Margin="5">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -38,7 +49,7 @@
 
         <Image x:Name="uiCoverImageLeft" Grid.Column="0" Visibility="Visible">
             <Image.Source>
-                <BitmapImage UriSource="Assets/AlbumCoverPlaceholder.png" />
+                <BitmapImage UriSource="../Assets/AlbumCoverPlaceholder.png" />
             </Image.Source>
         </Image>
 

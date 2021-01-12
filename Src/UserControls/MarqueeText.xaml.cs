@@ -1,6 +1,6 @@
 ﻿// ShowPlay - Show what song is playing
 //
-// Copyright (C) 2020 VacuityBox
+// Copyright (C) 2020-2021 VacuityBox
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
