@@ -40,8 +40,8 @@ namespace ShowPlay
         {
             InitializeComponent();
             
+            // Add logger backends.
             var fileBackend = new FileBackend("ShowPlay.log");
-
             if (Debugger.IsAttached)
             {
                 mLoggerWindow.LogLevel = (int)LogType.Debug;
@@ -57,11 +57,21 @@ namespace ShowPlay
 
             Log.LoggerInstance.AddBackend("FileLog", fileBackend);
             Log.LoggerInstance.AddBackend("WindowLog", mLoggerWindow);
+
+            // Start server.
+            var ip = new System.Net.IPAddress(new byte[4]{ 127, 0, 0, 1});
+            var server = new Server(ip, 8585, false);
+
+            server.ConnectionAccepted += Server_ConnectionAccepted;
+            server.ConnectionClosed += Server_ConnectionClosed;
+            server.DataReceived += Server_DataReceived;
+
+            server.Start();
         }
 
         #endregion
 
-        #region Events
+        #region UI Events
 
         private void uiShowLog_Click(object sender, RoutedEventArgs e)
         {
@@ -77,6 +87,25 @@ namespace ShowPlay
         private void Window_Closing(object sender, CancelEventArgs e)
         {
             Application.Current.Shutdown();
+        }
+
+        #endregion
+
+        #region Server Events
+
+        private void Server_ConnectionAccepted(object sender, ClientEventArgs args)
+        {
+            Log.Warning("Connection accepted");
+        }
+
+        private void Server_ConnectionClosed(object sender, ClientEventArgs args)
+        {
+            Log.Warning("Connection closed");
+        }
+
+        private void Server_DataReceived(object sender, ClientEventArgs args)
+        {
+            Log.Warning("Connection date received");
         }
 
         #endregion
