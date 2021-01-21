@@ -33,6 +33,7 @@
     <Window.ContextMenu>
         <ContextMenu>
             <ContextMenu.Items>
+                <MenuItem x:Name="uiRestartServer" Click="uiRestartServer_Click" Header="Restart Server"/>
                 <MenuItem x:Name="uiShowLog" Click="uiShowLog_Click" Header="Show Log"/>
                 <Separator />
                 <MenuItem x:Name="uiMenuExit" Click="uiMenuExit_Click" Header="Exit"/>
@@ -66,7 +67,7 @@
 
         <Image x:Name="uiCoverImageRight" Grid.Column="2" Visibility="Collapsed">
             <Image.Source>
-                <BitmapImage UriSource="Assets/AlbumCoverPlaceholder.png" />
+                <BitmapImage UriSource="../Assets/AlbumCoverPlaceholder.png" />
             </Image.Source>
         </Image>
     </Grid>
