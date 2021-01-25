@@ -52,20 +52,9 @@
             </StackPanel.RenderTransform>
 
             <Canvas x:Name="uiCanvas">
-                <TextBlock x:Name="uiTextBlock" Text="{Binding Text}" FontSize="{Binding FontSize}" Canvas.Left="0"/>
                 <TextBlock
-                    x:Name="uiTextBlockLeft"
-                    Background="{Binding Background}"
-                    FontFamily="{Binding FontFamily}"
-                    FontSize="{Binding FontSize}" 
-                    FontStretch="{Binding FontStretch}"
-                    FontStyle="{Binding FontStyle}"
-                    FontWeight="{Binding FontWeight}"
-                    Foreground="{Binding Foreground}"
-                    Text="{Binding Text}"
-                    />
-                <TextBlock
-                    x:Name="uiTextBlockRight"
+                    x:Name="uiTextBlock"
+                    Canvas.Left="0"
                     Background="{Binding Background}"
                     FontFamily="{Binding FontFamily}"
                     FontSize="{Binding FontSize}" 
