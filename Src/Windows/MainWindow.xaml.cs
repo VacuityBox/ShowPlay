@@ -17,6 +17,7 @@
 //
 // SPDX-License-Identifier: GPL-3.0-only 
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -34,9 +35,6 @@ namespace ShowPlay
         #region Private Proporties
 
         private LoggerWindow mLoggerWindow { get; set; } = new LoggerWindow();
-        private List<int> mClients { get; set; } = new List<int>();
-        private int? mActiveClient { get; set; } = null;
-        private Server mServer { get; set; } = null;
 
         #endregion
 
@@ -45,7 +43,7 @@ namespace ShowPlay
         public MainWindow()
         {
             InitializeComponent();
-            
+
             // Add logger backends.
             var fileBackend = new FileBackend("ShowPlay.log");
             if (Debugger.IsAttached)
@@ -64,15 +62,13 @@ namespace ShowPlay
             Log.LoggerInstance.AddBackend("FileLog", fileBackend);
             Log.LoggerInstance.AddBackend("WindowLog", mLoggerWindow);
 
-            // Start server.
-            var ip = new System.Net.IPAddress(new byte[4]{ 127, 0, 0, 1});
-            mServer = new Server(ip, 8585, false);
-
-            mServer.ConnectionAccepted += Server_ConnectionAccepted;
-            mServer.ConnectionClosed += Server_ConnectionClosed;
-            mServer.DataReceived += Server_DataReceived;
-
-            mServer.Start();
+            // Bind ViewModel.
+            var viewModel = new MainViewModel();
+            viewModel.ResetAnimRow1 += ResetAnimRow1;
+            viewModel.ResetAnimRow2 += ResetAnimRow2;
+            DataContext = viewModel;
+            uiTextRow1.DataContext = viewModel.Row1;
+            uiTextRow2.DataContext = viewModel.Row2;
         }
 
         #endregion
@@ -95,70 +91,18 @@ namespace ShowPlay
             Application.Current.Shutdown();
         }
 
-        private void uiRestartServer_Click(object sender, RoutedEventArgs e)
-        {
-            mServer.Restart();
-        }
-
         #endregion
 
-        #region Server Events
+        #region Events
 
-        private void Server_ConnectionAccepted(object sender, ClientEventArgs args)
+        private void ResetAnimRow1(object sender, EventArgs e)
         {
-            // Check if client is not already in client list.
-            if (mClients.Contains(args.ClientId))
-            {
-                Log.Warning("Client #{0} already added to client list", args.ClientId);
-                return;
-            }
-
-            // Add client.
-            mClients.Add(args.ClientId);
-            Log.Success("Added new client, id #{0}", args.ClientId);
-
-            // If this is the first client, set as active.
-            if (mActiveClient is null && mClients.Count == 1)
-            {
-                mActiveClient = args.ClientId;
-                Log.Info("Setting active client to #{0}", mActiveClient);
-            }
+            uiTextRow1.Reset();
         }
 
-        private void Server_ConnectionClosed(object sender, ClientEventArgs args)
+        private void ResetAnimRow2(object sender, EventArgs e)
         {
-            // Check if client is in client list.
-            if (!mClients.Contains(args.ClientId))
-            {
-                Log.Warning("Client #{0} is not in client list", args.ClientId);
-                return;
-            }
-
-            // If client was active then set active client to null.
-            if (mActiveClient == args.ClientId)
-            {
-                mActiveClient = null;
-                Log.Info("Setting active client to null");
-            }
-
-            // Remove client.
-            mClients.Remove(args.ClientId);
-            Log.Success("Removed client, id #{0}", args.ClientId);
-
-        }
-
-        private void Server_DataReceived(object sender, ClientEventArgs args)
-        {
-            // If received data is not from current active client, ignore.
-            if (mActiveClient != args.ClientId)
-            {
-                return;
-            }
-
-            // Deserialize.
-            var jsonStr = Encoding.UTF8.GetString(args.Data).TrimEnd('\0');
-            var root = JsonSerializer.Deserialize(jsonStr, typeof(Paylaod));
-            Log.Debug("{0}", root.ToString());
+            uiTextRow2.Reset();
         }
 
         #endregion

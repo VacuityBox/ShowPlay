@@ -33,7 +33,7 @@
     <Window.ContextMenu>
         <ContextMenu>
             <ContextMenu.Items>
-                <MenuItem x:Name="uiRestartServer" Click="uiRestartServer_Click" Header="Restart Server"/>
+                <MenuItem x:Name="uiRestartServer" Command="{Binding RestartServerCommand}" Header="Restart Server"/>
                 <MenuItem x:Name="uiShowLog" Click="uiShowLog_Click" Header="Show Log"/>
                 <Separator />
                 <MenuItem x:Name="uiMenuExit" Click="uiMenuExit_Click" Header="Exit"/>
@@ -48,7 +48,7 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <Image x:Name="uiCoverImageLeft" Grid.Column="0" Visibility="Visible">
+        <Image x:Name="uiCoverImageLeft" Grid.Column="0" Visibility="Collapsed">
             <Image.Source>
                 <BitmapImage UriSource="../Assets/AlbumCoverPlaceholder.png" />
             </Image.Source>
@@ -60,8 +60,8 @@
                 <RowDefinition />
             </Grid.RowDefinitions>
 
-            <uc:MarqueeText x:Name="uiTextRow1" Grid.Row="0" FontSize="22" AlwaysAnim="True" AnimType="Bounce" StartDelay="1200" Text="Track Title" />
-            <uc:MarqueeText x:Name="uiTextRow2" Grid.Row="1" FontSize="22" AnimType="Bounce" StartDelay="1200" Text="Album Name" />
+            <uc:MarqueeText x:Name="uiTextRow1" Grid.Row="0" FontSize="22" AlwaysAnim="True" AnimType="Bounce" StartDelay="1200" Text="{Binding Text}" />
+            <uc:MarqueeText x:Name="uiTextRow2" Grid.Row="1" FontSize="22" TextAlign="Right" LoopDirection="Right" AlwaysAnim="True" AnimType="Loop" StartDelay="1200" Text="{Binding Text}" />
 
         </Grid>
 

@@ -22,7 +22,7 @@ using System.Runtime.Serialization;
 namespace ShowPlay
 {
     [DataContract]
-    public class Paylaod
+    public class Payload
     {
         [DataMember]
         public uint Frame { get; set; }
