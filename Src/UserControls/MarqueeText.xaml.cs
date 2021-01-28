@@ -21,6 +21,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Media.Animation;
 
 namespace ShowPlay.UserControls
@@ -53,7 +54,12 @@ namespace ShowPlay.UserControls
     /// </summary>
     public partial class MarqueeText : UserControl
     {
-        #region Public Proporties
+        private static readonly DependencyProperty TextInternalProperty = DependencyProperty.Register(
+            "TextInternal",
+            typeof(string),
+            typeof(MarqueeText),
+            new PropertyMetadata(default(string))
+        );
 
         public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
             "Text",
@@ -61,6 +67,8 @@ namespace ShowPlay.UserControls
             typeof(MarqueeText),
             new PropertyMetadata(default(string))
         );
+
+        #region Public Proporties
 
         public string Text
         {
@@ -80,9 +88,14 @@ namespace ShowPlay.UserControls
 
         #region Private Proporties
 
+        private string TextInternal
+        {
+            get { return (string)GetValue(TextInternalProperty); }
+            set { SetValue(TextInternalProperty, value); }
+        }
         private int    mAnimCount    { get; set; } = 0;
         private int    mAnimStep     { get; set; } = 0;
-        private string mText         { get; set; } = "MarqueeText";
+        private bool   mRequestReset { get; set; } = false;
         
         #endregion
 
@@ -91,7 +104,7 @@ namespace ShowPlay.UserControls
         public MarqueeText()
         {
             InitializeComponent();
-            this.DataContext = this;
+            //this.DataContext = this;
             this.Loaded += MarqueeText_Loaded;
             this.SizeChanged += MarqueeText_SizeChanged;
         }
@@ -114,15 +127,6 @@ namespace ShowPlay.UserControls
 
         #region Public Methods
 
-        /// <summary>
-        /// Use this to update text.
-        /// </summary>
-        /// <param name="text"></param>
-        public void SetText(string text)
-        {
-            mText = text;
-        }
-
         public void Reset()
         {            
             // Stop current animation.
@@ -142,6 +146,11 @@ namespace ShowPlay.UserControls
             }
         }
 
+        public void RequestReset()
+        {
+            mRequestReset = true;
+        }
+
         #endregion
 
         #region Reset
@@ -153,28 +162,28 @@ namespace ShowPlay.UserControls
             {
                 if (TextAlign == MarqueeTextAlignment.Left)
                 {
-                    Text = mText + new string(' ', (int)SpacesBetween);
+                    TextInternal = Text + new string(' ', (int)SpacesBetween);
                 }
                 else
                 {
-                    Text = new string(' ', (int)SpacesBetween) + mText;
+                    TextInternal = new string(' ', (int)SpacesBetween) + Text;
                 }
-                
+
                 uiTextBlock.UpdateLayout(); // Make sure ActualWidth gets updated.
 
                 // Fix if text is on right and it's too big.
-                // We need to check after the update.
+                // We check this after we set the text to new value.
                 if (TextAlign == MarqueeTextAlignment.Right && !CheckIfTextFit())
                 {
-                    Text = mText + new string(' ', (int)SpacesBetween);
-                    uiTextBlock.UpdateLayout();
+                    TextInternal = Text + new string(' ', (int)SpacesBetween);
                 }
             }
             else
             {
-                Text = mText;
-                uiTextBlock.UpdateLayout(); // Make sure ActualWidth gets updated.
+                TextInternal = Text;
             }
+
+            uiTextBlock.UpdateLayout(); // Make sure ActualWidth gets updated.
         }
 
         private void ResetTextTransform()
@@ -233,10 +242,13 @@ namespace ShowPlay.UserControls
 
             // Seek anim to begining to make text appear at start position,
             // and then manually pause/delay/resume.
-            storyboard.Seek(this, TimeSpan.Zero, TimeSeekOrigin.BeginTime);
-            storyboard.Pause(this);
-            await Task.Delay(delay);
-            storyboard.Resume(this);
+            if (delay > 0)
+            {
+                storyboard.Seek(this, TimeSpan.Zero, TimeSeekOrigin.BeginTime);
+                storyboard.Pause(this);
+                await Task.Delay(delay);
+                storyboard.Resume(this);
+            }
         }
 
         private void StopAnimation()
@@ -406,14 +418,14 @@ namespace ShowPlay.UserControls
             // Bindings should match those for uiTextBlock in xaml.
             var tb = new TextBlock();
             tb.Name = name;
-            tb.SetBinding(TextBlock.BackgroundProperty , "Background" );
-            tb.SetBinding(TextBlock.FontFamilyProperty , "FontFamily" );
-            tb.SetBinding(TextBlock.FontSizeProperty   , "FontSize"   );
-            tb.SetBinding(TextBlock.FontStretchProperty, "FontStretch");
-            tb.SetBinding(TextBlock.FontStyleProperty  , "FontStyle"  );
-            tb.SetBinding(TextBlock.FontWeightProperty , "FontWeight" );
-            tb.SetBinding(TextBlock.ForegroundProperty , "Foreground" );
-            tb.SetBinding(TextBlock.TextProperty       , "Text"       );
+            tb.SetBinding(TextBlock.BackgroundProperty , new Binding{ Path = new PropertyPath("Background"  ), ElementName = "self" });
+            tb.SetBinding(TextBlock.FontFamilyProperty , new Binding{ Path = new PropertyPath("FontFamily"  ), ElementName = "self" });
+            tb.SetBinding(TextBlock.FontSizeProperty   , new Binding{ Path = new PropertyPath("FontSize"    ), ElementName = "self" });
+            tb.SetBinding(TextBlock.FontStretchProperty, new Binding{ Path = new PropertyPath("FontStretch" ), ElementName = "self" });
+            tb.SetBinding(TextBlock.FontStyleProperty  , new Binding{ Path = new PropertyPath("FontStyle"   ), ElementName = "self" });
+            tb.SetBinding(TextBlock.FontWeightProperty , new Binding{ Path = new PropertyPath("FontWeight"  ), ElementName = "self" });
+            tb.SetBinding(TextBlock.ForegroundProperty , new Binding{ Path = new PropertyPath("Foreground"  ), ElementName = "self" });
+            tb.SetBinding(TextBlock.TextProperty       , new Binding{ Path = new PropertyPath("TextInternal"), ElementName = "self" });
             return tb;
         }
 

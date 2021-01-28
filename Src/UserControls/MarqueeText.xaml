@@ -26,7 +26,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:ShowPlay.UserControls"
              mc:Ignorable="d" 
-             d:DesignHeight="25" d:DesignWidth="200">
+             d:DesignHeight="25" d:DesignWidth="200"
+             x:Name="self">
     
     <Grid x:Name="uiGrid" ClipToBounds="True">
         <Grid.RowDefinitions>
@@ -55,14 +56,14 @@
                 <TextBlock
                     x:Name="uiTextBlock"
                     Canvas.Left="0"
-                    Background="{Binding Background}"
-                    FontFamily="{Binding FontFamily}"
-                    FontSize="{Binding FontSize}" 
-                    FontStretch="{Binding FontStretch}"
-                    FontStyle="{Binding FontStyle}"
-                    FontWeight="{Binding FontWeight}"
-                    Foreground="{Binding Foreground}"
-                    Text="{Binding Text}"
+                    Background="{Binding Background, ElementName=self}"
+                    FontFamily="{Binding FontFamily, ElementName=self}"
+                    FontSize="{Binding FontSize, ElementName=self}" 
+                    FontStretch="{Binding FontStretch, ElementName=self}"
+                    FontStyle="{Binding FontStyle, ElementName=self}"
+                    FontWeight="{Binding FontWeight, ElementName=self}"
+                    Foreground="{Binding Foreground, ElementName=self}"
+                    Text="{Binding TextInternal, ElementName=self}"
                     />
             </Canvas>
         </StackPanel>
