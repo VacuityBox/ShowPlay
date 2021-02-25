@@ -106,6 +106,11 @@ namespace ShowPlay
         public void LogMessage(LogInfo info)
         {
             // Run on UI thread.
+            if (Application.Current is null)
+            {
+                return;
+            }
+
             Application.Current.Dispatcher.Invoke((Action)(() =>
             {
                 // Limit history to 4096 messages.
