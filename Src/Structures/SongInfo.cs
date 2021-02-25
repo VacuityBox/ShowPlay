@@ -35,12 +35,15 @@ namespace ShowPlay
 
         [DataMember]
         public string Date        { get; set; } = ""; // YYYY-MM-DD
+        
+        [DataMember]
+        public string Year        { get; set; } = "";
 
         [DataMember]
-        public int    TrackNumber { get; set; } = 0;
+        public int?   TrackNumber { get; set; } = 0;
 
         [DataMember]
-        public int    Length      { get; set; } = 0; // in seconds
+        public double? Length     { get; set; } = 0.0;
 
         [DataMember]
         public string Path        { get; set; } = "";

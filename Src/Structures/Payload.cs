@@ -25,6 +25,9 @@ namespace ShowPlay
     public class Payload
     {
         [DataMember]
+        public string Token { get; set; } = null;
+
+        [DataMember]
         public uint Frame { get; set; }
 
         [DataMember]

@@ -32,9 +32,9 @@ namespace ShowPlay
     public class PlaybackInfo
     {
         [DataMember]
-        public PlaybackState State { get; set; } = PlaybackState.Nothing;
+        public PlaybackState? State { get; set; } = PlaybackState.Nothing;
 
         [DataMember]
-        public int Elapsed { get; set; } = 0; // in seconds
+        public double? Elapsed { get; set; } = 0;
     }
 }
