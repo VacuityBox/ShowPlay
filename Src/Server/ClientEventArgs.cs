@@ -21,13 +21,13 @@ namespace ShowPlay
 {
     public class ClientEventArgs
     {
-        public int    ClientId { get; set; } = 0;
-        public byte[] Data     { get; set; } = null;
+        public int     ClientId { get; set; } = 0;
+        public Payload Payload  { get; set; } = null;
 
-        public ClientEventArgs(int id, byte[] data = null)
+        public ClientEventArgs(int id, Payload payload = null)
         {
             ClientId = id;
-            Data = data;
+            Payload = payload;
         }
     }
 }

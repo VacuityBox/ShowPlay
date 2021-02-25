@@ -22,6 +22,7 @@ using System.Collections.Concurrent;
 using System.IO;
 using System.Net;
 using System.Net.WebSockets;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -81,6 +82,8 @@ namespace ShowPlay
         private int          mNextFreeId    { get; set; } = 0;
         private object       mIdLock        { get; set; } = new object();
         private bool         mIsRunning     { get; set; } = false;
+        private int?         mActiveClient  { get; set; } = null;
+        private string       mToken         { get; set; } = null;
 
         private ConcurrentDictionary<int, WebSocketClient>
                              mClients       { get; set; } = new ConcurrentDictionary<int, WebSocketClient>();
@@ -106,7 +109,7 @@ namespace ShowPlay
 
         #endregion
 
-        #region Public Methods
+        #region Start/Stop Server Public Methods
 
         public void Start()
         {
@@ -183,14 +186,34 @@ namespace ShowPlay
             ConnectionClosed?.Invoke(this, new ClientEventArgs(client.Id));
         }
 
-        private void OnDataReceived(WebSocketClient client, byte[] buffer)
+        private void OnDataReceived(WebSocketClient client, MemoryStream stream)
         {
-            DataReceived?.Invoke(this, new ClientEventArgs(client.Id, buffer));
+            Log.Info("Parsing payload");
+
+            // Deserialize json.
+            var payload = (Payload)null;
+            try
+            {
+                var json = stream.ToArray();
+                payload = (Payload)JsonSerializer.Deserialize(json, typeof(Payload));
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to deserialize json");
+                Log.Debug("{0}", e);
+                return;
+            }
+            finally
+            {
+                Log.Success("Succesfully deserialized json");
+            }
+
+            DataReceived?.Invoke(this, new ClientEventArgs(client.Id, payload));
         }
 
         #endregion
 
-        #region Private Methods
+        #region Client Id/Token Generation/Setters
 
         private int GenerateId()
         {
@@ -199,6 +222,84 @@ namespace ShowPlay
                 return mNextFreeId++;
             }
         }
+
+        public int? GetActiveClientId()
+        {
+            return mActiveClient;
+        }
+
+        public void SetActiveClientId(int? id)
+        {
+            // If id is null and there is active client, deactivate.
+            if (id is null && mActiveClient != null)
+            {
+                DeactivateClient(id);
+                return;
+            }
+
+            // Invalid id.
+            if (id < 0 && id >= mClients.Count)
+            {
+                return;
+            }
+
+            // Ignore if client id is active.
+            if (mActiveClient == id)
+            {
+                return;
+            }
+
+            // First deactivate curent active client.
+            if (mActiveClient != null)
+            {
+                DeactivateClient(mActiveClient);
+            }
+
+            // Activate new client.
+            ActivateClient(id);
+        }
+
+        private string GenerateToken()
+        {
+            return Guid.NewGuid().ToString();
+        }
+
+        private void ActivateClient(int? id)
+        {
+            var client = mClients[(int)id];
+
+            // Generate new Token.
+            mToken = GenerateToken();
+
+            // Create token payload.
+            var token = "{ \"Token\": \"" + mToken + "\" }";
+            var data = new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes(token));
+                
+            // Send message to client.
+            client.Context.WebSocket.SendAsync(data, WebSocketMessageType.Text, true, CancellationToken.None);
+            Log.Success("Send activation token to client #{0}", id);
+
+            mActiveClient = id;
+        }
+
+        private void DeactivateClient(int? id)
+        {
+            var client = mClients[(int)id];
+
+            // Create token payload.
+            var token = "{ \"Token\": null }";
+            var data = new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes(token));
+                
+            // Send message to client.
+            client.Context.WebSocket.SendAsync(data, WebSocketMessageType.Text, true, CancellationToken.None);
+            Log.Success("Send deactivation token to client #{0}", id);
+
+            mActiveClient = null;
+        }
+
+        #endregion
+
+        #region Private Methods
 
         private async Task StartListening()
         {
@@ -272,12 +373,11 @@ namespace ShowPlay
                 // Create client and notify about accepted connection.
                 var client = new WebSocketClient(id, webSocketContext, ipAddress, port, mIsSecure);
 
-                Log.Success("Accepted connecton from {0}:{1} assiging id #{2}", ipAddress, port, id);
-                OnConnectionAccepted(client);
-                
                 // Add new client.
                 mClients.TryAdd(id, client);
+                Log.Success("Accepted connecton from {0}:{1} assiging id #{2}", ipAddress, port, id);
 
+                OnConnectionAccepted(client);
                 return client;
             }
 
@@ -291,6 +391,12 @@ namespace ShowPlay
         {
             if (!mClients.ContainsKey(client.Id))
                 return;
+
+            // Deactivate if client is active.
+            if (client.Id == mActiveClient)
+            {
+                DeactivateClient(mActiveClient);
+            }
 
             // Remove client.
             mClients.TryRemove(client.Id, out _);
@@ -337,7 +443,12 @@ namespace ShowPlay
                     else
                     {
                         Log.Info("Received data from client #{0} ({1} b)", client.Id, result.Stream.Length);
-                        OnDataReceived(client, result.Stream.GetBuffer());                        
+
+                        // Process data further only if data come from active client.
+                        if (client.Id == mActiveClient)
+                        {
+                            OnDataReceived(client, result.Stream);                        
+                        }
                     }
                 }
             }
@@ -375,6 +486,7 @@ namespace ShowPlay
                     stream.Write(buffer.Array, buffer.Offset, result.Count);
                 }
             } while (!result.EndOfMessage);
+
             stream.Seek(0, SeekOrigin.Begin);
 
             return new ReceiveResult(result, stream);
