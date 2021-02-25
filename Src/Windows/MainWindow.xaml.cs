@@ -18,11 +18,8 @@
 // SPDX-License-Identifier: GPL-3.0-only 
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
 using System.Windows;
 
 namespace ShowPlay
@@ -34,7 +31,8 @@ namespace ShowPlay
     {
         #region Private Proporties
 
-        private LoggerWindow mLoggerWindow { get; set; } = new LoggerWindow();
+        private LoggerWindow mLoggerWindow     { get; set; } = new LoggerWindow();
+        private string       mSettingsFileName { get; set; } = "ShowPlay.json";
 
         #endregion
 
@@ -62,8 +60,11 @@ namespace ShowPlay
             Log.LoggerInstance.AddBackend("FileLog", fileBackend);
             Log.LoggerInstance.AddBackend("WindowLog", mLoggerWindow);
 
+            // Load Settings.
+            var settings = LoadSettings();
+
             // Bind ViewModel.
-            var viewModel = new MainViewModel();
+            var viewModel = new MainViewModel(settings);
             viewModel.ResetAnimRow1 += ResetAnimRow1;
             viewModel.ResetAnimRow2 += ResetAnimRow2;
             DataContext = viewModel;
@@ -75,6 +76,16 @@ namespace ShowPlay
 
         #region UI Events
 
+        private void uiOpenSettings_Click(object sender, RoutedEventArgs e)
+        {
+            var settingsWindow = new SettingsWindow();
+            settingsWindow.DataContext = this.DataContext;
+            if (settingsWindow.ShowDialog() ?? false)
+            {
+                SaveSettings();
+            }
+        }
+
         private void uiShowLog_Click(object sender, RoutedEventArgs e)
         {
             if (mLoggerWindow.Visibility == Visibility.Hidden)
@@ -83,11 +94,13 @@ namespace ShowPlay
 
         private void uiMenuExit_Click(object sender, RoutedEventArgs e)
         {
+            SaveSettings();
             Application.Current.Shutdown();
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
+            SaveSettings();
             Application.Current.Shutdown();
         }
 
@@ -97,12 +110,77 @@ namespace ShowPlay
 
         private void ResetAnimRow1(object sender, EventArgs e)
         {
-            uiTextRow1.Reset();
+            if ((e as RefreshEventArgs).ResetAnim)
+            {
+                uiTextRow1.Reset();
+            }
+            else
+            {
+                uiTextRow1.Update();
+            }
         }
 
         private void ResetAnimRow2(object sender, EventArgs e)
         {
-            uiTextRow2.Reset();
+            if ((e as RefreshEventArgs).ResetAnim)
+            {
+                uiTextRow2.Reset();
+            }
+            else
+            {
+                uiTextRow2.Update();
+            }
+        }
+
+        #endregion
+
+        #region Settings Loading/Saving
+
+        private Settings LoadSettings()
+        {
+            var settings = new Settings();
+            try
+            {
+                settings = SettingsReader.Load(mSettingsFileName);
+            }
+            catch
+            {
+                MessageBox.Show(
+                    string.Format("Failed to load settings file '{0}'.\nUsing default values.", mSettingsFileName),
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+            }
+
+            return settings;
+        }
+
+        private void SaveSettings()
+        {
+            var settings = new Settings();
+            try
+            {
+                settings.Row1 = (this.DataContext as MainViewModel).Row1;
+                settings.Row2 = (this.DataContext as MainViewModel).Row2;
+                
+                settings.WindowPosX   = this.Left;
+                settings.WindowPosY   = this.Top;
+                settings.WindowWidth  = this.Width;
+                settings.WindowHeight = this.Height;
+                settings.WindowTitle  = this.Title;
+
+                SettingsWriter.Save(mSettingsFileName, settings);
+            }
+            catch
+            {
+                MessageBox.Show(
+                    string.Format("Failed to save settings file '{0}'.", mSettingsFileName),
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning
+                );
+            }
         }
 
         #endregion

@@ -27,20 +27,27 @@
         xmlns:local="clr-namespace:ShowPlay"
         xmlns:uc="clr-namespace:ShowPlay.UserControls"
         mc:Ignorable="d"
-        Title="MainWindow" Height="100" Width="480"
-        Closing="Window_Closing">
+        Title="{Binding WindowTitle, Mode=TwoWay}"
+        Top="{Binding WindowPosY, Mode=TwoWay}"
+        Left="{Binding WindowPosX, Mode=TwoWay}"
+        Height="{Binding WindowHeight, Mode=TwoWay}"
+        Width="{Binding WindowWidth, Mode=TwoWay}"
+        Background="Black"
+        Closing="Window_Closing" d:DesignWidth="500" d:DesignHeight="100">
 
     <Window.ContextMenu>
         <ContextMenu>
             <ContextMenu.Items>
                 <MenuItem x:Name="uiRestartServer" Command="{Binding RestartServerCommand}" Header="Restart Server"/>
+                <Separator />
+                <MenuItem x:Name="uiOpenSettings" Click="uiOpenSettings_Click" Header="Settings"/>
                 <MenuItem x:Name="uiShowLog" Click="uiShowLog_Click" Header="Show Log"/>
                 <Separator />
                 <MenuItem x:Name="uiMenuExit" Click="uiMenuExit_Click" Header="Exit"/>
             </ContextMenu.Items>
         </ContextMenu>
     </Window.ContextMenu>
-    
+
     <Grid x:Name="uiMainGrid" Margin="5">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -54,14 +61,51 @@
             </Image.Source>
         </Image>
 
-        <Grid x:Name="uiTextColumn" Grid.Column="1" Margin="5, 0, 0, 0">
-            <Grid.RowDefinitions>
-                <RowDefinition />
-                <RowDefinition />
-            </Grid.RowDefinitions>
+        <Grid x:Name="uiTextColumn" Grid.Column="1" Margin="5, 0, 5, 0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-            <uc:MarqueeText x:Name="uiTextRow1" Grid.Row="0" FontSize="22" AlwaysAnim="True" AnimType="Bounce" StartDelay="1200" Text="{Binding Text}" />
-            <uc:MarqueeText x:Name="uiTextRow2" Grid.Row="1" FontSize="22" TextAlign="Right" LoopDirection="Right" AlwaysAnim="True" AnimType="Loop" StartDelay="1200" Text="{Binding Text}" />
+            <uc:MarqueeText x:Name="uiTextRow1"
+                Grid.Column="0"
+                AlwaysAnim="{Binding AlwaysAnim}"
+                AnimSpeed="{Binding AnimSpeed}"
+                AnimType="{Binding AnimType}"
+                Background="{Binding Background}"
+                FontFamily="{Binding FontFamily}"
+                FontSize="{Binding FontSize}"
+                FontStretch="{Binding FontStretch}"
+                FontStyle="{Binding FontStyle}"
+                FontWeight="{Binding FontWeight}"
+                Foreground="{Binding Foreground}"
+                LoopDelayOnce="{Binding LoopDelayOnce}"
+                LoopDirection="{Binding LoopDirection}"
+                SpacesBetween="{Binding SpacesBetween}"
+                StartDelay="{Binding StartDelay}"
+                Text="{Binding Text}" 
+                TextAlign="{Binding TextAlign}"
+                />
+
+            <uc:MarqueeText x:Name="uiTextRow2"
+                Grid.Column="1"
+                AlwaysAnim="{Binding AlwaysAnim}"
+                AnimSpeed="{Binding AnimSpeed}"
+                AnimType="{Binding AnimType}"
+                Background="{Binding Background}"
+                FontFamily="{Binding FontFamily}"
+                FontSize="{Binding FontSize}"
+                FontStretch="{Binding FontStretch}"
+                FontStyle="{Binding FontStyle}"
+                FontWeight="{Binding FontWeight}"
+                Foreground="{Binding Foreground}"
+                LoopDelayOnce="{Binding LoopDelayOnce}"
+                LoopDirection="{Binding LoopDirection}"
+                SpacesBetween="{Binding SpacesBetween}"
+                StartDelay="{Binding StartDelay}"
+                Text="{Binding Text}" 
+                TextAlign="{Binding TextAlign}"
+                />
 
         </Grid>
 
@@ -71,5 +115,5 @@
             </Image.Source>
         </Image>
     </Grid>
-    
+
 </Window>
