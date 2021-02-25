@@ -19,38 +19,114 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
+using System.Timers;
 using System.Windows;
-using System.Windows.Input;
 
 namespace ShowPlay
 {
-    public class MainViewModel
+    public class RefreshEventArgs : EventArgs
+    {
+        public bool ResetAnim { get; }
+
+        public RefreshEventArgs(bool resetAnim)
+        {
+            ResetAnim = resetAnim;
+        }
+    }
+
+    public class MainViewModel : INotifyPropertyChanged
     {
         #region Private Proporties
 
-        private List<int> mClients      { get; set; } = new List<int>();
-        private int?      mActiveClient { get; set; } = null;
         private Server    mServer       { get; set; } = null;
+        private Timer     mTimer        { get; set; } = null;
 
-        private string mTextRow1 { get; set; } = "";
-        private string mTextRow2 { get; set; } = "";
+        private double mWindowPosX   { get; set; } = 200;
+        private double mWindowPosY   { get; set; } = 100;
+        private double mWindowWidth  { get; set; } = 400;
+        private double mWindowHeight { get; set; } = 100;
+        private string mWindowTitle  { get; set; } = "ShowPlay";
 
         #endregion
 
         #region Public Proporties
 
-        public SongInfo     CurrentSong  { get; set; } = null;
-        public PlayerInfo   ActivePlayer { get; set; } = null;
-        public PlaybackInfo Playback     { get; set; } = new PlaybackInfo();
-        public CoverInfo    AlbumCover   { get; set; } = null;
-
-        public string FormatStringRow1 { get; set; } = "";
-        public string FormatStringRow2 { get; set; } = "";
+        public SongInfo     CurrentSong     { get; set; } = new SongInfo();
+        public PlayerInfo   CurrentPlayer   { get; set; } = new PlayerInfo();
+        public PlaybackInfo CurrentPlayback { get; set; } = new PlaybackInfo();
+        public CoverInfo    CurrentCover    { get; set; } = new CoverInfo();
 
         public MarqueeTextViewModel Row1 { get; set; }
         public MarqueeTextViewModel Row2 { get; set; }
+
+        public double WindowPosX
+        {
+            get
+            {
+                return mWindowPosX;
+            }
+            set
+            {
+                mWindowPosX = value;
+                NotifyPropertyChanged();
+            }
+        }
+                
+        public double WindowPosY
+        {
+            get
+            {
+                return mWindowPosY;
+            }
+            set
+            {
+                mWindowPosY = value;
+                NotifyPropertyChanged();
+            }
+        }
+                
+        public double WindowWidth
+        {
+            get
+            {
+                return mWindowWidth;
+            }
+            set
+            {
+                mWindowWidth = value;
+                NotifyPropertyChanged();
+            }
+        }
+        
+        public double WindowHeight
+        {
+            get
+            {
+                return mWindowHeight;
+            }
+            set
+            {
+                mWindowHeight = value;
+                NotifyPropertyChanged();
+            }
+        }
+
+        public string WindowTitle
+        {
+            get
+            {
+                return mWindowTitle;
+            }
+            set
+            {
+                mWindowTitle = value;
+                NotifyPropertyChanged();
+            }
+        }
 
         #endregion
 
@@ -58,6 +134,7 @@ namespace ShowPlay
 
         public event EventHandler ResetAnimRow1 = null;
         public event EventHandler ResetAnimRow2 = null;
+        public event PropertyChangedEventHandler PropertyChanged;
 
         #endregion
 
@@ -69,13 +146,30 @@ namespace ShowPlay
 
         #region Constructor
 
-        public MainViewModel()
+        public MainViewModel(Settings settings)
         {
-            Row1 = new MarqueeTextViewModel();
-            Row1.ResetAnim += OnResetAnimRow1;
+            WindowPosX = settings.WindowPosX;
+            WindowPosY = settings.WindowPosY;
+            WindowWidth  = settings.WindowWidth;
+            WindowHeight = settings.WindowHeight;
+            WindowTitle = settings.WindowTitle;
 
+            Row1 = new MarqueeTextViewModel();
+            Row1 = settings.Row1 ?? new MarqueeTextViewModel();
+            //Row1.ResetAnim += OnResetAnimRow1;
+            
             Row2 = new MarqueeTextViewModel();
-            Row2.ResetAnim += OnResetAnimRow2;
+            Row2 = settings.Row2 ?? new MarqueeTextViewModel();
+            //Row2.ResetAnim += OnResetAnimRow2;
+
+            mTimer = new Timer(1000);
+            mTimer.Elapsed += RefreshInfo;
+            //mTimer.Start();
+
+            // Reset Player Playback info.
+            CurrentPlayback.State = PlaybackState.Nothing;
+            CurrentPlayback.Elapsed = 0.0;
+            RefreshInfo(this, new RefreshEventArgs(true));
 
             // Start server.
             var ip = new System.Net.IPAddress(new byte[4]{127, 0, 0, 1});
@@ -92,14 +186,23 @@ namespace ShowPlay
 
         #endregion
 
+        #region NotifyPropertyChanged
+
+        private void NotifyPropertyChanged([CallerMemberName] string propertyName = "")  
+        {  
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        #endregion
+
         #region Reset Animations on UI
 
-        void OnResetAnimRow1(object sender, EventArgs e)
+        void OnResetAnimRow1(object sender, RefreshEventArgs e)
         {
             ResetAnimRow1?.Invoke(this, e);
         }
 
-        void OnResetAnimRow2(object sender, EventArgs e)
+        void OnResetAnimRow2(object sender, RefreshEventArgs e)
         {
             ResetAnimRow2?.Invoke(this, e);
         }
@@ -110,129 +213,283 @@ namespace ShowPlay
 
         private void Server_ConnectionAccepted(object sender, ClientEventArgs args)
         {
-            // Check if client is not already in client list.
-            if (mClients.Contains(args.ClientId))
+            // If there is no active client, activete first client that connects.
+            if (mServer.GetActiveClientId() == null)
             {
-                Log.Warning("Client #{0} already added to client list", args.ClientId);
-                return;
-            }
-
-            // Add client.
-            mClients.Add(args.ClientId);
-            Log.Success("Added new client, id #{0}", args.ClientId);
-
-            // If this is the first client, set as active.
-            if (mActiveClient is null && mClients.Count == 1)
-            {
-                mActiveClient = args.ClientId;
-                Log.Info("Setting active client to #{0}", mActiveClient);
+                mServer.SetActiveClientId(args.ClientId);
+                Log.Info("Setting active client to #{0}", args.ClientId);
             }
         }
 
         private void Server_ConnectionClosed(object sender, ClientEventArgs args)
         {
-            // Check if client is in client list.
-            if (!mClients.Contains(args.ClientId))
-            {
-                Log.Warning("Client #{0} is not in client list", args.ClientId);
-                return;
-            }
+            //// Check if client is in client list.
+            //if (!mClients.Contains(args.ClientId))
+            //{
+            //    Log.Warning("Client #{0} is not in client list", args.ClientId);
+            //    return;
+            //}
 
-            // If client was active then set active client to null.
-            if (mActiveClient == args.ClientId)
-            {
-                mActiveClient = null;
-                Log.Info("Setting active client to null");
-            }
+            //// If client was active then set active client to null.
+            //if (mActiveClient == args.ClientId)
+            //{
+            //    mActiveClient = null;
+            //    Log.Info("Setting active client to null");
+            //}
 
-            // Remove client.
-            mClients.Remove(args.ClientId);
-            Log.Success("Removed client, id #{0}", args.ClientId);
+            //// Remove client.
+            //mClients.Remove(args.ClientId);
+            //Log.Success("Removed client, id #{0}", args.ClientId);
 
         }
 
         private void Server_DataReceived(object sender, ClientEventArgs args)
         {
-            // If received data is not from current active client, ignore.
-            if (mActiveClient != args.ClientId)
-            {
-                return;
-            }
-
-            var jsonStr = Encoding.UTF8.GetString(args.Data).TrimEnd('\0');
-            ParsePayload(jsonStr);
+            UpdateInfo(args.Payload);
         }
 
         #endregion
 
         #region Parse Payload
 
-        private void ParsePayload(string jsonStr)
+        private void UpdateInfo(Payload payload)
         {
-            Log.Info("Parsing payload");
-            Log.Debug("{0}", jsonStr);
-
-            // Deserialize json.
-            var root = (Payload)null;
-            try
-            {
-                root = (Payload)JsonSerializer.Deserialize(jsonStr, typeof(Payload));
-            }
-            catch (Exception e)
-            {
-                Log.Error("Failed to deserialize json: {0}", e);
-                return;
-            }
-            finally
-            {
-                Log.Success("Succesfully deserialized json");
-            }
+            Log.Info("Updating information...");
 
             // Update UI.
             Application.Current.Dispatcher.Invoke((Action)(() =>
             {
-                if (root.Player is not null)
-                    UpdatePlayer(root.Player);
+            var resetAnim = false;
 
-                if (root.Song is not null)
-                    UpdateSong(root.Song);
+            if (payload.Player is not null)
+            {
+                UpdatePlayer(payload.Player);                
+            }
 
-                if (root.Playback is not null)
-                    UpdatePlayback(root.Playback);
+            if (payload.Song is not null)
+            {
+                UpdateSong(payload.Song);
+                resetAnim = true;
+            }
 
-                if (root.Cover is not null)
-                    UpdateCover(root.Cover);
+            if (payload.Playback is not null)
+            {
+                UpdatePlayback(payload.Playback);
+            }
+
+            if (payload.Cover is not null)
+            {
+                UpdateCover(payload.Cover);
+            }
+
+            RefreshInfo(this, new RefreshEventArgs(resetAnim));
             }));
+        }
+
+        private bool ValidatePayload(Payload payload)
+        {
+            return true;
         }
 
         private void UpdatePlayer(PlayerInfo player)
         {
-
+            CurrentPlayer = player;
         }
 
         private void UpdateSong(SongInfo song)
         {
-            Row1.Text = song.Title;
-            Row2.Text = song.Album;
+            if (CurrentSong is null)
+            {
+                CurrentSong = new SongInfo();
+            }
+
+            CurrentSong.Title       = song.Title       ?? "";
+            CurrentSong.Album       = song.Album       ?? "";
+            CurrentSong.Artist      = song.Artist      ?? "";
+            CurrentSong.Date        = song.Date        ?? "";
+            CurrentSong.Year        = song.Year        ?? "";
+            CurrentSong.TrackNumber = song.TrackNumber ?? 0;
+            CurrentSong.Length      = song.Length      ?? 0.0;
+            CurrentSong.Path        = song.Path        ?? "";
         }
 
-        private void UpdatePlayback(PlaybackInfo palyback)
+        private void UpdatePlayback(PlaybackInfo playback)
         {
+            if (playback.State is not null)
+            {
+                if (CurrentPlayback.State != playback.State)
+                {
+                    CurrentPlayback.State = playback.State;
 
+                    if (CurrentPlayback.State == PlaybackState.Playing)
+                    {
+                        //mTimer.Start();
+                    }
+                    else
+                    {
+                        //mTimer.Stop();
+                    }
+                }
+            }
+
+            if (playback.Elapsed is not null)
+            {
+                CurrentPlayback.Elapsed = playback.Elapsed;
+            }
         }
 
         private void UpdateCover(CoverInfo cover)
         {
+            CurrentCover = cover;
+        }
 
+        #endregion
+
+        #region Refresh Info
+
+        private void RefreshInfo(object sender, EventArgs e)
+        {
+            if (CurrentSong is not null)
+            {
+                var format1 = "";
+                var format2 = "";
+
+                switch (CurrentPlayback.State)
+                {
+                    case PlaybackState.Nothing:
+                        format1 = Row1.FormatNothing;
+                        format2 = Row2.FormatNothing;
+                        break;
+                    case PlaybackState.Paused:
+                        format1 = Row1.FormatPaused;
+                        format2 = Row2.FormatPaused;
+                        break;
+                    case PlaybackState.Playing:
+                        format1 = Row1.FormatPlaying;
+                        format2 = Row2.FormatPlaying;
+                        break;
+                }
+
+                Row1.Text = Format(format1, CurrentSong, CurrentPlayback, CurrentPlayer);
+                Row2.Text = Format(format2, CurrentSong, CurrentPlayback, CurrentPlayer);
+
+                ResetAnimRow1?.Invoke(this, e);
+                ResetAnimRow2?.Invoke(this, e);
+            }
+        
+
+            //if (PlayerPlayback.State == PlaybackState.Playing)
+            //{
+            //    if (PlayerPlayback.Elapsed < CurrentSong.Length)
+            //    {
+            //        PlayerPlayback.Elapsed += 1;
+            //    }
+            //    else
+            //    {
+            //        Log.Warning("Elapsed time exceeded song length");
+            //    }
+            //}
         }
 
         #endregion
 
         #region Formater
 
-        private string Format(SongInfo song, PlaybackInfo playback, PlayerInfo player)
+        enum FormatterState
         {
-            return "";
+            Read,
+            Format,
+            Done,
+        }
+
+        private string ElapsedToTime(int elapsed)
+        {
+            var seconds = elapsed % 60;
+            elapsed = (elapsed - seconds) / 60;
+
+            var minutes = elapsed % 60;
+            elapsed = (elapsed - minutes) / 60;
+            
+            var hours = elapsed;
+
+            return (hours > 0)
+                ? string.Format("{0}:{1}:{2}", hours, minutes.ToString("D2"), seconds.ToString("D2"))
+                : string.Format("{0}:{1}", minutes, seconds.ToString("D2"))
+                ;
+        }
+
+        private string Format(string format, SongInfo song, PlaybackInfo playback, PlayerInfo player)
+        {
+            var state = FormatterState.Read;
+            var formatChar = '%';
+            var output = "";
+            
+            for (var i = 0; i < format.Length; )            
+            {
+                var c = format[i];
+                var consume = true;
+
+                if (state == FormatterState.Read)
+                {
+                    if (c == formatChar)
+                    {
+                        state = FormatterState.Format;
+                    }
+                    else
+                    {
+                        output += c;
+                    }
+                }
+                else if (state == FormatterState.Format)
+                {
+                    switch (c)
+                    {
+                        case 's':
+                            output += song.Title ?? "";
+                            break;
+                        case 'A':
+                            output += song.Artist ?? "";
+                            break;
+                        case 'a':
+                            output += song.Album ?? "";
+                            break;
+                        case 't':
+                            output += (song.Length ?? 0).ToString();
+                            break;
+                        case 'T':
+                            output += ElapsedToTime((int)(song.Length ?? 0));
+                            break;
+                        case 'e':
+                            output += (playback.Elapsed ?? 0).ToString();
+                            break;
+                        case 'E':
+                            output += ElapsedToTime((int)(playback.Elapsed ?? 0));
+                            break;
+                        case '%':
+                            output += '%';
+                            break;
+                        default:
+                            Log.Warning("Invalid format character '{0}'", c);
+                            consume = false;
+                            break;
+                    }       
+
+                    state = FormatterState.Read;
+                }
+                else
+                {
+                    break;
+                }
+
+                if (consume)
+                {
+                    i += 1;
+                }
+            }
+
+            state = FormatterState.Done;
+
+            return output;
         }
 
         #endregion
