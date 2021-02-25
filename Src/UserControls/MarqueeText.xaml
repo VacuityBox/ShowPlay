@@ -1,7 +1,7 @@
 ﻿<!--
   ShowPlay - Show what song is playing
   
-  Copyright (C) 2020 VacuityBox
+  Copyright (C) 2020-2021 VacuityBox
   
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@
                 <TranslateTransform x:Name="transformText" X="0"/>
             </StackPanel.RenderTransform>
 
-            <Canvas x:Name="uiCanvas">
+            <Canvas x:Name="uiCanvas" Visibility="Visible">
                 <TextBlock
                     x:Name="uiTextBlock"
                     Canvas.Left="0"
@@ -66,6 +66,20 @@
                     Text="{Binding TextInternal, ElementName=self}"
                     />
             </Canvas>
+
+            <!-- This one is used when AnimType is None -->
+            <TextBlock
+                x:Name="uiTextBlockFallback"
+                Visibility="Collapsed"
+                Background="{Binding Background, ElementName=self}"
+                FontFamily="{Binding FontFamily, ElementName=self}"
+                FontSize="{Binding FontSize, ElementName=self}" 
+                FontStretch="{Binding FontStretch, ElementName=self}"
+                FontStyle="{Binding FontStyle, ElementName=self}"
+                FontWeight="{Binding FontWeight, ElementName=self}"
+                Foreground="{Binding Foreground, ElementName=self}"
+                Text="{Binding TextInternal, ElementName=self}"
+                />
         </StackPanel>
     </Grid>
     

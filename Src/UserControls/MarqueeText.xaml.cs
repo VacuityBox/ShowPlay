@@ -54,19 +54,79 @@ namespace ShowPlay.UserControls
     /// </summary>
     public partial class MarqueeText : UserControl
     {
-        private static readonly DependencyProperty TextInternalProperty = DependencyProperty.Register(
-            "TextInternal",
+        #region Dependency Proporties
+
+        public static readonly DependencyProperty AlwaysAnimProperty = DependencyProperty.Register(
+            nameof(AlwaysAnim),
+            typeof(bool),
+            typeof(MarqueeText),
+            new PropertyMetadata(false)
+        );
+
+        public static readonly DependencyProperty AnimSpeedProperty = DependencyProperty.Register(
+            nameof(AnimSpeed),
+            typeof(double),
+            typeof(MarqueeText),
+            new PropertyMetadata(1.0)
+        );
+
+        public static readonly DependencyProperty AnimTypeProperty = DependencyProperty.Register(
+            nameof(AnimType),
+            typeof(MarqueeAnimationType),
+            typeof(MarqueeText),
+            new PropertyMetadata(MarqueeAnimationType.None)
+        );
+
+        public static readonly DependencyProperty LoopDelayOnceProperty = DependencyProperty.Register(
+            nameof(LoopDelayOnce),
+            typeof(bool),
+            typeof(MarqueeText),
+            new PropertyMetadata(false)
+        );
+
+        public static readonly DependencyProperty LoopDirectionProperty = DependencyProperty.Register(
+            nameof(LoopDirection),
+            typeof(MarqueeLoopDirection),
+            typeof(MarqueeText),
+            new PropertyMetadata(MarqueeLoopDirection.Left)
+        );
+
+        public static readonly DependencyProperty SpacesBetweenProperty = DependencyProperty.Register(
+            nameof(SpacesBetween),
+            typeof(uint),
+            typeof(MarqueeText),
+            new PropertyMetadata(default(uint))
+        );
+
+        public static readonly DependencyProperty StartDelayProperty = DependencyProperty.Register(
+            nameof(StartDelay),
+            typeof(uint),
+            typeof(MarqueeText),
+            new PropertyMetadata(default(uint))
+        );
+
+        public static readonly DependencyProperty TextAlignProperty = DependencyProperty.Register(
+            nameof(TextAlign),
+            typeof(MarqueeTextAlignment),
+            typeof(MarqueeText),
+            new PropertyMetadata(MarqueeTextAlignment.Left)
+        );
+
+        public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
+            nameof(Text),
             typeof(string),
             typeof(MarqueeText),
             new PropertyMetadata(default(string))
         );
 
-        public static readonly DependencyProperty TextProperty = DependencyProperty.Register(
-            "Text",
+        private static readonly DependencyProperty TextInternalProperty = DependencyProperty.Register(
+            nameof(TextInternal),
             typeof(string),
             typeof(MarqueeText),
             new PropertyMetadata(default(string))
         );
+
+        #endregion
 
         #region Public Proporties
 
@@ -75,14 +135,54 @@ namespace ShowPlay.UserControls
             get { return (string)GetValue(TextProperty); }
             set { SetValue(TextProperty, value); }
         }
-        public bool                 AlwaysAnim    { get; set; } = false;
-        public double               AnimSpeed     { get; set; } = 1.0;
-        public MarqueeAnimationType AnimType      { get; set; } = MarqueeAnimationType.None;
-        public bool                 LoopDelayOnce { get; set; } = false;
-        public MarqueeLoopDirection LoopDirection { get; set; } = MarqueeLoopDirection.Left;
-        public uint                 SpacesBetween { get; set; } = 0;
-        public uint                 StartDelay    { get; set; } = 100;
-        public MarqueeTextAlignment TextAlign     { get; set; } = MarqueeTextAlignment.Left;
+
+        public bool AlwaysAnim
+        {
+            get { return (bool)GetValue(AlwaysAnimProperty); }
+            set { SetValue(AlwaysAnimProperty, value); }
+        }
+
+        public double AnimSpeed
+        {
+            get { return (double)GetValue(AnimSpeedProperty); }
+            set { SetValue(AnimSpeedProperty, value); }
+        }
+
+        public MarqueeAnimationType AnimType
+        {
+            get { return (MarqueeAnimationType)GetValue(AnimTypeProperty); }
+            set { SetValue(AnimTypeProperty, value); }
+        }
+
+        public bool LoopDelayOnce
+        {
+            get { return (bool)GetValue(LoopDelayOnceProperty); }
+            set { SetValue(LoopDelayOnceProperty, value); }
+        }
+
+        public MarqueeLoopDirection LoopDirection
+        {
+            get { return (MarqueeLoopDirection)GetValue(LoopDirectionProperty); }
+            set { SetValue(LoopDirectionProperty, value); }
+        }
+
+        public uint SpacesBetween
+        {
+            get { return (uint)GetValue(SpacesBetweenProperty); }
+            set { SetValue(SpacesBetweenProperty, value); }
+        }
+
+        public uint StartDelay
+        {
+            get { return (uint)GetValue(StartDelayProperty); }
+            set { SetValue(StartDelayProperty, value); }
+        }
+
+        public MarqueeTextAlignment TextAlign
+        {
+            get { return (MarqueeTextAlignment)GetValue(TextAlignProperty); }
+            set { SetValue(TextAlignProperty, value); }
+        }
         
         #endregion
 
@@ -95,7 +195,6 @@ namespace ShowPlay.UserControls
         }
         private int    mAnimCount    { get; set; } = 0;
         private int    mAnimStep     { get; set; } = 0;
-        private bool   mRequestReset { get; set; } = false;
         
         #endregion
 
@@ -104,7 +203,6 @@ namespace ShowPlay.UserControls
         public MarqueeText()
         {
             InitializeComponent();
-            //this.DataContext = this;
             this.Loaded += MarqueeText_Loaded;
             this.SizeChanged += MarqueeText_SizeChanged;
         }
@@ -132,23 +230,27 @@ namespace ShowPlay.UserControls
             // Stop current animation.
             StopAnimation();
             
+            ResetTextBlocks();
             ResetText();
-            //ResetTextTransform();
+            ResetTextTransform();
 
-            // Update helper blocks.
             RemoveHelperBlocks();
-            CreateHelperBlocks();
 
-            // Restart Animation only if AlwaysAnim or text doesn't fit the area.
-            if (AlwaysAnim || !CheckIfTextFit())
+            if (AnimType == MarqueeAnimationType.Loop || AnimType == MarqueeAnimationType.Bounce)
             {
-                ResetAnimation();
+                CreateHelperBlocks();
+
+                // Restart Animation only if AlwaysAnim or text doesn't fit the area.
+                if (AlwaysAnim || !CheckIfTextFit())
+                {
+                    ResetAnimation();
+                }
             }
         }
 
-        public void RequestReset()
+        public void Update()
         {
-            mRequestReset = true;
+            ResetText();
         }
 
         #endregion
@@ -207,6 +309,20 @@ namespace ShowPlay.UserControls
                 case MarqueeAnimationType.Bounce:
                     StartAnimation();
                     break;
+            }
+        }
+
+        private void ResetTextBlocks()
+        {
+            if (AnimType == MarqueeAnimationType.None)
+            {
+                uiCanvas.Visibility = Visibility.Collapsed;
+                uiTextBlockFallback.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                uiTextBlockFallback.Visibility = Visibility.Collapsed;
+                uiCanvas.Visibility = Visibility.Visible;
             }
         }
 
@@ -286,7 +402,7 @@ namespace ShowPlay.UserControls
             switch (AnimType)
             {
                 case MarqueeAnimationType.None:
-                    var diff = uiGrid.ActualWidth - uiTextBlock.ActualWidth;
+                    var diff = uiGrid.ActualWidth - uiTextBlockFallback.ActualWidth;
                     if (TextAlign == MarqueeTextAlignment.Left || diff < 0.0)
                         return new Tuple<double, double>(0.0, 0.0);
                     else
@@ -342,7 +458,7 @@ namespace ShowPlay.UserControls
             {
                 // Calculate number of visible block that text cover.
                 var C = 1;
-                if (SpacesBetween == 0)
+                if (SpacesBetween == 0 && visibleWidth > 0.0)
                 {
                     var x = textWidth;
                     while (x > visibleWidth)
@@ -441,6 +557,11 @@ namespace ShowPlay.UserControls
             var off = 0.0;
             if (SpacesBetween == 0)
             {
+                if (visibleWidth <= 0)
+                {
+                    return;
+                }
+
                 var c = 1;
                 var x = textWidth;
                 while (x > visibleWidth)
@@ -453,6 +574,11 @@ namespace ShowPlay.UserControls
             }
             else
             {
+                if (textWidth <= 0)
+                {
+                    return;
+                }
+
                 var x = visibleWidth - textWidth;
                 while (x > 0.0)
                 {
